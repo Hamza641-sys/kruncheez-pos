@@ -1,0 +1,8 @@
+.orders-page { display: flex; flex-direction: column; gap: 20px; }
+.orders-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.orders-layout { display: flex; gap: 20px; align-items: flex-start; }
+.orders-detail { width: 340px; flex-shrink: 0; }
+.orders-detail-info { display: flex; flex-direction: column; gap: 8px; }
+.orders-detail-info > div { display: flex; justify-content: space-between; font-size: 13px; }
+.orders-detail-info > div > span:first-child { color: var(--text-muted); }
+.orders-detail-info > div > span:last-child { font-weight: 500; color: var(--text-primary); }

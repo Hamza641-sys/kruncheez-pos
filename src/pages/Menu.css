@@ -1,0 +1,2 @@
+.menu-page { display: flex; flex-direction: column; gap: 20px; }
+.menu-cats { display: flex; gap: 8px; flex-wrap: wrap; }

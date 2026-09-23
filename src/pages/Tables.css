@@ -1,0 +1,6 @@
+.tables-page { display: flex; flex-direction: column; gap: 20px; }
+.tables-legend { display: flex; gap: 16px; align-items: center; }
+.tables-legend-item { display: flex; align-items: center; gap: 6px; }
+.tables-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
+.tables-layout { display: flex; gap: 20px; align-items: flex-start; }
+.tables-detail { width: 260px; flex-shrink: 0; }
