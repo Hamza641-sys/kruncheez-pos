@@ -45,8 +45,7 @@ export default function POS() {
   const [redeemPoints, setRedeemPoints]       = useState(0)    // points to redeem
 
   // Print hooks
-  const { printRef: receiptRef, handlePrint: printReceipt } = usePrint()
-  const { printRef: kitchenRef, handlePrint: printKitchen } = usePrint()
+  const { printRef: receiptRef, kitchenPrintRef: kitchenRef, handlePrint: printReceipt, handlePrintKitchen: printKitchen, handlePrintBoth } = usePrint()
 
   const tax          = Math.round(cartTotal * 0.05)
   const discountAmt  = Math.round(cartTotal * (discount / 100))
@@ -426,14 +425,21 @@ export default function POS() {
               </div>
             </div>
 
-            <div style={{display:'flex',gap:10}}>
-              <button className="btn-primary" style={{flex:1,padding:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}
-                onClick={()=>printReceipt('80mm')}>
-                <MdPrint /> Print 80mm
+            {/* Print Buttons */}
+            <div style={{display:'flex',gap:10,marginBottom:8}}>
+              <button className="btn-primary" style={{flex:2,padding:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:14}}
+                onClick={()=>handlePrintBoth('80mm')}>
+                <MdPrint /> Print Both Copies (Customer + Kitchen)
               </button>
-              <button className="btn-outline" style={{flex:1,padding:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}
-                onClick={()=>printReceipt('58mm')}>
-                <MdPrint /> Print 58mm
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn-outline" style={{flex:1,padding:10,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:12}}
+                onClick={()=>printReceipt('80mm')}>
+                <MdPrint /> Customer Only (80mm)
+              </button>
+              <button className="btn-outline" style={{flex:1,padding:10,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:12}}
+                onClick={()=>printKitchen('58mm')}>
+                <MdPrint /> Kitchen Only (58mm)
               </button>
             </div>
 
@@ -454,7 +460,7 @@ export default function POS() {
               </div>
             )}
 
-            {/* Hidden kitchen slip for auto print */}
+            {/* Hidden kitchen slip for both-print */}
             <div style={{display:'none'}}>
               <div ref={kitchenRef}>
                 <KitchenSlip order={lastOrder} />

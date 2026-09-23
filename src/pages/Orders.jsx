@@ -27,8 +27,7 @@ export default function Orders() {
   const [showReceipt, setShowReceipt] = useState(false)
   const [printOrder, setPrintOrder]   = useState(null)
 
-  const { printRef: receiptRef, handlePrint: printReceipt } = usePrint()
-  const { printRef: kitchenRef, handlePrint: printKitchen } = usePrint()
+  const { printRef: receiptRef, kitchenPrintRef: kitchenRef, handlePrint: printReceipt, handlePrintKitchen: printKitchen, handlePrintBoth } = usePrint()
 
   const filtered = filter==='all' ? orders : orders.filter(o=>o.status===filter)
   const detail   = selected ? orders.find(o=>o.id===selected) : null
@@ -239,14 +238,21 @@ export default function Orders() {
               </div>
             </div>
 
-            <div style={{display:'flex',gap:10}}>
-              <button className="btn-primary" style={{flex:1,padding:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}
-                onClick={()=>printReceipt('80mm')}>
-                <MdPrint /> 80mm
+            {/* Both copies */}
+            <div style={{marginBottom:8}}>
+              <button className="btn-primary" style={{width:'100%',padding:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:14}}
+                onClick={()=>handlePrintBoth('80mm')}>
+                <MdPrint /> Print Both Copies (Customer + Kitchen)
               </button>
-              <button className="btn-outline" style={{flex:1,padding:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}
-                onClick={()=>printReceipt('58mm')}>
-                <MdPrint /> 58mm
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn-outline" style={{flex:1,padding:10,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:12}}
+                onClick={()=>printReceipt('80mm')}>
+                <MdPrint /> Customer Only
+              </button>
+              <button className="btn-outline" style={{flex:1,padding:10,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:12}}
+                onClick={()=>printKitchen('58mm')}>
+                <MdPrint /> Kitchen Only
               </button>
             </div>
             {printOrder?.customerPhone && (
@@ -259,8 +265,7 @@ export default function Orders() {
             {/* Hidden kitchen slip */}
             <div style={{display:'none'}}>
               <div ref={kitchenRef}><KitchenSlip order={printOrder} /></div>
-            </div>
-          </div>
+            </div>          </div>
         </div>
       )}
     </div>
