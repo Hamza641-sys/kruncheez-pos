@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Staff can read/write if authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuth() && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.permissions.hasAny(['all']);
+    }
+
+    function isManager() {
+      return isAuth() && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.permissions.hasAny(['all','reports']);
+    }
+
+    // Menu - read all authenticated, write admin/manager only
+    match /menuCategories/{doc} {
+      allow read: if isAuth();
+      allow write: if isAdmin() || isManager();
+    }
+
+    match /menuItems/{doc} {
+      allow read: if isAuth();
+      allow write: if isAdmin() || isManager();
+    }
+
+    // Orders - all authenticated staff
+    match /orders/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Tables - all authenticated
+    match /tables/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Customers - all authenticated
+    match /customers/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Inventory - all authenticated
+    match /inventory/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Expenses - manager/admin only
+    match /expenses/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Staff - admin only for write
+    match /staff/{userId} {
+      allow read: if isAuth();
+      allow write: if isAdmin() || request.auth.uid == userId;
+    }
+
+    // Sales summary - all authenticated
+    match /salesSummary/{doc} {
+      allow read, write: if isAuth();
+    }
+  }
+}
