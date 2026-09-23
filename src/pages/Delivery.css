@@ -1,0 +1,51 @@
+.delivery-page { display: flex; flex-direction: column; gap: 20px; }
+.delivery-stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; }
+.delivery-tabs { display: flex; gap: 10px; }
+
+.delivery-orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.delivery-order-card { display: flex; flex-direction: column; gap: 10px; }
+
+.delivery-card-header {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.delivery-order-num { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.delivery-status-badge { padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+
+.delivery-customer { display: flex; flex-direction: column; gap: 3px; }
+.delivery-customer-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.delivery-customer-phone { font-size: 12px; color: var(--info); display: flex; align-items: center; gap: 4px; text-decoration: none; }
+.delivery-customer-phone:hover { text-decoration: underline; }
+.delivery-address { font-size: 12px; color: var(--text-muted); display: flex; align-items: flex-start; gap: 3px; }
+
+.delivery-items { display: flex; flex-wrap: wrap; gap: 6px; }
+.delivery-item-chip { font-size: 11px; background: var(--bg-hover); border: 1px solid var(--border); padding: 3px 8px; border-radius: 10px; color: var(--text-secondary); }
+
+.delivery-meta { display: flex; justify-content: space-between; align-items: center; }
+.delivery-total { font-size: 15px; font-weight: 800; color: var(--accent); }
+.delivery-time { font-size: 11px; color: var(--text-muted); }
+
+.delivery-rider-assigned {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--info);
+  background: rgba(76,201,240,0.08); border: 1px solid rgba(76,201,240,0.2);
+  padding: 6px 10px; border-radius: 8px;
+}
+
+.delivery-assign-select {
+  width: 100%; padding: 9px 12px; font-size: 13px;
+  background: var(--bg-hover); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+}
+
+.delivery-action-btn {
+  width: 100%; padding: 10px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; border: none; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.delivery-action-btn:hover { opacity: 0.8; }
+.delivery-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }

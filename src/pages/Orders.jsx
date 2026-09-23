@@ -4,6 +4,7 @@ import { updateOrderStatus, updateKitchenStatus, completePayment } from '../fire
 import { usePrint } from '../hooks/usePrint'
 import Receipt from '../components/Receipt'
 import KitchenSlip from '../components/KitchenSlip'
+import { sendWhatsAppReceipt } from '../utils/whatsapp'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import { MdPrint, MdReceipt } from 'react-icons/md'
@@ -248,6 +249,12 @@ export default function Orders() {
                 <MdPrint /> 58mm
               </button>
             </div>
+            {printOrder?.customerPhone && (
+              <button style={{width:'100%',padding:11,marginTop:8,borderRadius:8,fontWeight:600,fontSize:13,background:'#25D366',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}
+                onClick={()=>sendWhatsAppReceipt(printOrder)}>
+                📲 Send via WhatsApp
+              </button>
+            )}
 
             {/* Hidden kitchen slip */}
             <div style={{display:'none'}}>

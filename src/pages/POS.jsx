@@ -1,16 +1,19 @@
 import { useState, useMemo, useRef } from 'react'
 import { usePOS } from '../context/POSContext'
 import { useAuth } from '../context/AuthContext'
-import { createOrder, completePayment } from '../firebase/firestore'
+import { createOrder, completePayment, updateDocument, getCollection } from '../firebase/firestore'
+import { where } from '../firebase/firestore'
 import { usePrint } from '../hooks/usePrint'
 import Receipt from '../components/Receipt'
 import KitchenSlip from '../components/KitchenSlip'
 import CustomerCallLookup from '../components/CustomerCallLookup'
+import { sendWhatsAppReceipt } from '../utils/whatsapp'
+import { calculateEarnedPoints, calculateRedeemValue, canRedeem, getPointsTier } from '../utils/loyalty'
 import toast from 'react-hot-toast'
 import {
   MdSearch, MdClose, MdAdd, MdRemove,
   MdTableRestaurant, MdDeliveryDining, MdTakeoutDining,
-  MdPhone, MdPrint, MdPerson
+  MdPhone, MdPrint, MdPerson, MdWhatsapp
 } from 'react-icons/md'
 import './POS.css'
 
@@ -37,6 +40,8 @@ export default function POS() {
   const [customerPhone, setCustomerPhone]     = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
   const [lastOrder, setLastOrder]             = useState(null)
+  const [customerData, setCustomerData]       = useState(null) // full customer object
+  const [redeemPoints, setRedeemPoints]       = useState(0)    // points to redeem
 
   // Print hooks
   const { printRef: receiptRef, handlePrint: printReceipt } = usePrint()
@@ -44,8 +49,10 @@ export default function POS() {
 
   const tax          = Math.round(cartTotal * 0.05)
   const discountAmt  = Math.round(cartTotal * (discount / 100))
-  const finalTotal   = cartTotal + tax - discountAmt
+  const loyaltyDiscount = calculateRedeemValue(redeemPoints)
+  const finalTotal   = Math.max(0, cartTotal + tax - discountAmt - loyaltyDiscount)
   const change       = Math.max(0, Number(amountPaid) - finalTotal)
+  const earnedPoints = calculateEarnedPoints(finalTotal)
 
   const filteredItems = useMemo(() => {
     let items = menuItems.filter(i => i.available)
@@ -59,6 +66,8 @@ export default function POS() {
     setCustomerName(customer.name || '')
     setCustomerPhone(customer.phone || '')
     setCustomerAddress(customer.address || '')
+    setCustomerData(customer)
+    setRedeemPoints(0)
     setShowCallModal(false)
     toast.success(`${customer.name} selected`)
   }
@@ -71,7 +80,9 @@ export default function POS() {
       items: cart.map(c => ({ ...c })),
       subtotal: cartTotal,
       tax,
-      discount: discountAmt,
+      discount: discountAmt + loyaltyDiscount,
+      loyaltyDiscount,
+      redeemPoints,
       total: finalTotal,
       orderType,
       tableId: selectedTable || null,
@@ -79,6 +90,7 @@ export default function POS() {
       customerName: customerName || 'Walk-in',
       customerPhone: customerPhone || null,
       customerAddress: customerAddress || null,
+      customerId: customerData?.id || null,
       staffId: userProfile?.uid || null,
       staffName: userProfile?.name || 'Cashier',
       status,
@@ -116,12 +128,33 @@ export default function POS() {
         amountPaid: Number(amountPaid) || finalTotal,
         change,
       })
-      const finalOrder = { ...payload, id: orderRef.id, paymentMethod: payMethod, amountPaid: Number(amountPaid)||finalTotal, change, createdAt: { toDate: () => new Date() } }
+
+      // Update customer loyalty points
+      if (customerData?.id) {
+        const newPoints = (customerData.loyaltyPoints || 0) - redeemPoints + earnedPoints
+        await updateDocument('customers', customerData.id, {
+          loyaltyPoints: Math.max(0, newPoints),
+          totalOrders: (customerData.totalOrders || 0) + 1,
+          totalSpent: (customerData.totalSpent || 0) + finalTotal,
+          lastOrderAt: new Date(),
+        })
+      }
+
+      const finalOrder = {
+        ...payload, id: orderRef.id,
+        paymentMethod: payMethod,
+        amountPaid: Number(amountPaid) || finalTotal,
+        change,
+        earnedPoints,
+        createdAt: { toDate: () => new Date() }
+      }
       setLastOrder(finalOrder)
       setShowPayModal(false)
       setShowReceiptModal(true)
-      toast.success(`💰 Paid! Change: Rs. ${change}`)
-      clearCart(); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setDiscount(0); setAmountPaid('')
+      toast.success(`💰 Paid! Change: Rs. ${change} | +${earnedPoints} pts`)
+      clearCart()
+      setCustomerName(''); setCustomerPhone(''); setCustomerAddress('')
+      setCustomerData(null); setDiscount(0); setRedeemPoints(0); setAmountPaid('')
     } catch { toast.error('Payment failed') }
     setPlacingOrder(false)
   }
@@ -313,6 +346,33 @@ export default function POS() {
               </div>
             )}
 
+        {/* Loyalty Points Redeem */}
+            {customerData && canRedeem(customerData.loyaltyPoints || 0) && (
+              <div style={{padding:'10px 12px',background:'rgba(76,201,240,0.08)',border:'1px solid rgba(76,201,240,0.2)',borderRadius:8,marginBottom:14}}>
+                <div style={{fontSize:12,fontWeight:600,color:'#4cc9f0',marginBottom:8}}>
+                  🎁 Loyalty Points: <strong>{customerData.loyaltyPoints}</strong> pts available
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <input type="range" min="0" max={Math.floor((customerData.loyaltyPoints||0)/10)*10}
+                    step="10" value={redeemPoints} onChange={e=>setRedeemPoints(Number(e.target.value))}
+                    style={{flex:1,accentColor:'var(--accent)'}} />
+                  <span style={{fontSize:13,fontWeight:700,color:'var(--accent)',whiteSpace:'nowrap'}}>
+                    {redeemPoints} pts = Rs. {calculateRedeemValue(redeemPoints)}
+                  </span>
+                </div>
+                {redeemPoints > 0 && (
+                  <div style={{fontSize:12,color:'var(--success)',marginTop:6}}>✓ Rs. {calculateRedeemValue(redeemPoints)} discount applied!</div>
+                )}
+              </div>
+            )}
+
+            {/* Earn points preview */}
+            {earnedPoints > 0 && (
+              <div style={{padding:'8px 12px',background:'rgba(45,198,83,0.06)',border:'1px solid rgba(45,198,83,0.15)',borderRadius:8,marginBottom:14,fontSize:12,color:'var(--success)'}}>
+                ⭐ Customer will earn <strong>+{earnedPoints} points</strong> on this order
+              </div>
+            )}
+
             <div style={{fontSize:28,fontWeight:800,color:'var(--accent)',textAlign:'center',marginBottom:16}}>
               Rs. {finalTotal.toLocaleString()}
             </div>
@@ -371,6 +431,23 @@ export default function POS() {
                 <MdPrint /> Print 58mm
               </button>
             </div>
+
+            {/* WhatsApp send */}
+            {lastOrder?.customerPhone && (
+              <button
+                style={{width:'100%',padding:12,marginTop:8,borderRadius:8,fontWeight:600,fontSize:13,background:'#25D366',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}
+                onClick={() => { sendWhatsAppReceipt(lastOrder); toast.success('Opening WhatsApp...') }}
+              >
+                <MdWhatsapp size={18} /> Send via WhatsApp
+              </button>
+            )}
+
+            {/* Loyalty points earned */}
+            {earnedPoints > 0 && (
+              <div style={{textAlign:'center',fontSize:13,color:'var(--success)',marginTop:8,fontWeight:600}}>
+                ⭐ +{earnedPoints} loyalty points earned!
+              </div>
+            )}
 
             {/* Hidden kitchen slip for auto print */}
             <div style={{display:'none'}}>

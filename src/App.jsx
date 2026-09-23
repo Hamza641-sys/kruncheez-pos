@@ -14,6 +14,7 @@ import Expenses from './pages/Expenses'
 import Reports from './pages/Reports'
 import Employees from './pages/Employees'
 import Settings from './pages/Settings'
+import Delivery from './pages/Delivery'
 
 function PrivateRoute({ children }) {
   const { user } = useAuth()
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="reports" element={<Reports />} />
         <Route path="employees" element={<Employees />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="delivery" element={<Delivery />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -4,7 +4,8 @@ import toast from 'react-hot-toast'
 import {
   MdDashboard, MdPointOfSale, MdReceipt, MdTableRestaurant,
   MdOutdoorGrill, MdMenuBook, MdInventory, MdPeople,
-  MdAccountBalance, MdBarChart, MdBadge, MdSettings, MdLogout
+  MdAccountBalance, MdBarChart, MdBadge, MdSettings, MdLogout,
+  MdTwoWheeler
 } from 'react-icons/md'
 import './Sidebar.css'
 
@@ -14,6 +15,7 @@ const navItems = [
   { path: '/orders',    label: 'Orders',       icon: <MdReceipt /> },
   { path: '/tables',    label: 'Tables',       icon: <MdTableRestaurant /> },
   { path: '/kitchen',   label: 'Kitchen',      icon: <MdOutdoorGrill /> },
+  { path: '/delivery',  label: 'Delivery',     icon: <MdTwoWheeler /> },
   { path: '/menu',      label: 'Menu',         icon: <MdMenuBook /> },
   { path: '/inventory', label: 'Inventory',    icon: <MdInventory /> },
   { path: '/customers', label: 'Customers',    icon: <MdPeople /> },
