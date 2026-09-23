@@ -1,35 +1,51 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { usePOS } from '../context/POSContext'
 import { useAuth } from '../context/AuthContext'
 import { createOrder, completePayment } from '../firebase/firestore'
+import { usePrint } from '../hooks/usePrint'
+import Receipt from '../components/Receipt'
+import KitchenSlip from '../components/KitchenSlip'
+import CustomerCallLookup from '../components/CustomerCallLookup'
 import toast from 'react-hot-toast'
-import { MdSearch, MdClose, MdAdd, MdRemove, MdTableRestaurant, MdDeliveryDining, MdTakeoutDining } from 'react-icons/md'
+import {
+  MdSearch, MdClose, MdAdd, MdRemove,
+  MdTableRestaurant, MdDeliveryDining, MdTakeoutDining,
+  MdPhone, MdPrint, MdPerson
+} from 'react-icons/md'
 import './POS.css'
 
 export default function POS() {
   const {
     menuItems, menuCategories, tables,
     cart, addToCart, removeFromCart, updateCartQty, clearCart,
-    cartTotal, cartCount,
+    cartTotal,
     selectedTable, setSelectedTable,
     orderType, setOrderType,
   } = usePOS()
   const { userProfile } = useAuth()
 
-  const [activeCategory, setActiveCategory] = useState('all')
-  const [search, setSearch] = useState('')
-  const [showPayModal, setShowPayModal] = useState(false)
-  const [payMethod, setPayMethod] = useState('cash')
-  const [amountPaid, setAmountPaid] = useState('')
-  const [discount, setDiscount] = useState(0)
-  const [placingOrder, setPlacingOrder] = useState(false)
-  const [customerName, setCustomerName] = useState('')
-  const [customerPhone, setCustomerPhone] = useState('')
+  const [activeCategory, setActiveCategory]   = useState('all')
+  const [search, setSearch]                   = useState('')
+  const [showPayModal, setShowPayModal]        = useState(false)
+  const [showCallModal, setShowCallModal]      = useState(false)
+  const [showReceiptModal, setShowReceiptModal]= useState(false)
+  const [payMethod, setPayMethod]             = useState('cash')
+  const [amountPaid, setAmountPaid]           = useState('')
+  const [discount, setDiscount]               = useState(0)
+  const [placingOrder, setPlacingOrder]       = useState(false)
+  const [customerName, setCustomerName]       = useState('')
+  const [customerPhone, setCustomerPhone]     = useState('')
+  const [customerAddress, setCustomerAddress] = useState('')
+  const [lastOrder, setLastOrder]             = useState(null)
 
-  const tax = Math.round(cartTotal * 0.05)
-  const discountAmt = Math.round(cartTotal * (discount / 100))
-  const finalTotal = cartTotal + tax - discountAmt
-  const change = Math.max(0, Number(amountPaid) - finalTotal)
+  // Print hooks
+  const { printRef: receiptRef, handlePrint: printReceipt } = usePrint()
+  const { printRef: kitchenRef, handlePrint: printKitchen } = usePrint()
+
+  const tax          = Math.round(cartTotal * 0.05)
+  const discountAmt  = Math.round(cartTotal * (discount / 100))
+  const finalTotal   = cartTotal + tax - discountAmt
+  const change       = Math.max(0, Number(amountPaid) - finalTotal)
 
   const filteredItems = useMemo(() => {
     let items = menuItems.filter(i => i.available)
@@ -38,126 +54,114 @@ export default function POS() {
     return items
   }, [menuItems, activeCategory, search])
 
+  // Called when customer selected from lookup
+  const handleCustomerSelect = (customer) => {
+    setCustomerName(customer.name || '')
+    setCustomerPhone(customer.phone || '')
+    setCustomerAddress(customer.address || '')
+    setShowCallModal(false)
+    toast.success(`${customer.name} selected`)
+  }
+
+  const buildOrderPayload = (status = 'pending') => {
+    const table = tables.find(t => t.id === selectedTable)
+    const orderNum = Date.now().toString().slice(-4)
+    return {
+      orderNumber: orderNum,
+      items: cart.map(c => ({ ...c })),
+      subtotal: cartTotal,
+      tax,
+      discount: discountAmt,
+      total: finalTotal,
+      orderType,
+      tableId: selectedTable || null,
+      tableNumber: table?.number || null,
+      customerName: customerName || 'Walk-in',
+      customerPhone: customerPhone || null,
+      customerAddress: customerAddress || null,
+      staffId: userProfile?.uid || null,
+      staffName: userProfile?.name || 'Cashier',
+      status,
+      note: '',
+    }
+  }
+
+  // Send to Kitchen only
   const handlePlaceOrder = async () => {
     if (cart.length === 0) { toast.error('Cart is empty'); return }
     if (orderType === 'dine-in' && !selectedTable) { toast.error('Please select a table'); return }
     setPlacingOrder(true)
     try {
-      const table = tables.find(t => t.id === selectedTable)
-      const orderNum = Date.now().toString().slice(-4)
-      await createOrder({
-        orderNumber: orderNum,
-        items: cart.map(c => ({ ...c })),
-        subtotal: cartTotal,
-        tax,
-        discount: discountAmt,
-        total: finalTotal,
-        orderType,
-        tableId: selectedTable || null,
-        tableNumber: table?.number || null,
-        customerName: customerName || 'Walk-in',
-        customerPhone: customerPhone || null,
-        staffId: userProfile?.uid || null,
-        staffName: userProfile?.name || 'Cashier',
-        note: '',
-      })
-      toast.success(`Order #${orderNum} placed!`)
-      clearCart()
-      setCustomerName('')
-      setCustomerPhone('')
-      setDiscount(0)
-    } catch (err) {
-      toast.error('Failed to place order')
-    } finally {
-      setPlacingOrder(false)
-    }
+      const payload = buildOrderPayload('pending')
+      await createOrder(payload)
+      // Print kitchen slip
+      setLastOrder(payload)
+      setTimeout(() => printKitchen('58mm'), 200)
+      toast.success(`Order #${payload.orderNumber} sent to kitchen! 🍳`)
+      clearCart(); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setDiscount(0)
+    } catch { toast.error('Failed to place order') }
+    setPlacingOrder(false)
   }
 
+  // Pay Now
   const handlePayNow = async () => {
     if (cart.length === 0) { toast.error('Cart is empty'); return }
     if (payMethod === 'cash' && Number(amountPaid) < finalTotal) { toast.error('Insufficient amount'); return }
     setPlacingOrder(true)
     try {
-      const table = tables.find(t => t.id === selectedTable)
-      const orderNum = Date.now().toString().slice(-4)
-      const orderRef = await createOrder({
-        orderNumber: orderNum,
-        items: cart.map(c => ({ ...c })),
-        subtotal: cartTotal,
-        tax,
-        discount: discountAmt,
-        total: finalTotal,
-        orderType,
-        tableId: selectedTable || null,
-        tableNumber: table?.number || null,
-        customerName: customerName || 'Walk-in',
-        customerPhone: customerPhone || null,
-        staffId: userProfile?.uid || null,
-        staffName: userProfile?.name || 'Cashier',
-        status: 'paid',
-      })
+      const payload = buildOrderPayload('paid')
+      const orderRef = await createOrder(payload)
       await completePayment(orderRef.id, {
         method: payMethod,
         amountPaid: Number(amountPaid) || finalTotal,
         change,
       })
-      toast.success(`Payment received! Change: Rs. ${change}`)
-      clearCart()
+      const finalOrder = { ...payload, id: orderRef.id, paymentMethod: payMethod, amountPaid: Number(amountPaid)||finalTotal, change, createdAt: { toDate: () => new Date() } }
+      setLastOrder(finalOrder)
       setShowPayModal(false)
-      setAmountPaid('')
-    } catch (err) {
-      toast.error('Payment failed')
-    } finally {
-      setPlacingOrder(false)
-    }
+      setShowReceiptModal(true)
+      toast.success(`💰 Paid! Change: Rs. ${change}`)
+      clearCart(); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setDiscount(0); setAmountPaid('')
+    } catch { toast.error('Payment failed') }
+    setPlacingOrder(false)
   }
 
   return (
     <div className="pos-page">
-      {/* ── Left: Menu ──────────────────────────── */}
+
+      {/* ── Left: Menu ─────────────────────────── */}
       <div className="pos-menu">
-        {/* Order type */}
-        <div className="pos-order-types">
-          {[
-            { type: 'dine-in',  icon: <MdTableRestaurant />,  label: 'Dine In' },
-            { type: 'takeaway', icon: <MdTakeoutDining />,    label: 'Takeaway' },
-            { type: 'delivery', icon: <MdDeliveryDining />,   label: 'Delivery' },
-          ].map(ot => (
-            <button
-              key={ot.type}
-              className={`pos-order-type-btn ${orderType === ot.type ? 'active' : ''}`}
-              onClick={() => setOrderType(ot.type)}
-            >
-              {ot.icon} {ot.label}
-            </button>
-          ))}
+
+        {/* Order Type + Call Button */}
+        <div className="pos-top-bar">
+          <div className="pos-order-types">
+            {[
+              { type: 'dine-in',  icon: <MdTableRestaurant />, label: 'Dine In' },
+              { type: 'takeaway', icon: <MdTakeoutDining />,   label: 'Takeaway' },
+              { type: 'delivery', icon: <MdDeliveryDining />,  label: 'Delivery' },
+            ].map(ot => (
+              <button key={ot.type} className={`pos-order-type-btn ${orderType===ot.type?'active':''}`} onClick={() => setOrderType(ot.type)}>
+                {ot.icon} {ot.label}
+              </button>
+            ))}
+          </div>
+          <button className="pos-call-btn" onClick={() => setShowCallModal(true)} title="Customer Call Lookup">
+            <MdPhone /> Call Lookup
+          </button>
         </div>
 
         {/* Search */}
         <div className="pos-search">
           <MdSearch className="pos-search-icon" />
-          <input
-            placeholder="Search menu items..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <input placeholder="Search menu items..." value={search} onChange={e => setSearch(e.target.value)} />
           {search && <MdClose className="pos-search-clear" onClick={() => setSearch('')} />}
         </div>
 
         {/* Categories */}
         <div className="pos-categories">
-          <button
-            className={`pos-cat-btn ${activeCategory === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveCategory('all')}
-          >
-            🍽️ All
-          </button>
+          <button className={`pos-cat-btn ${activeCategory==='all'?'active':''}`} onClick={() => setActiveCategory('all')}>🍽️ All</button>
           {menuCategories.map(cat => (
-            <button
-              key={cat.id}
-              className={`pos-cat-btn ${activeCategory === cat.id ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat.id)}
-            >
+            <button key={cat.id} className={`pos-cat-btn ${activeCategory===cat.id?'active':''}`} onClick={() => setActiveCategory(cat.id)}>
               {cat.icon} {cat.name}
             </button>
           ))}
@@ -170,77 +174,80 @@ export default function POS() {
           ) : filteredItems.map(item => {
             const cartItem = cart.find(c => c.itemId === item.id)
             return (
-              <div
-                key={item.id}
-                className={`pos-item-card ${cartItem ? 'in-cart' : ''}`}
-                onClick={() => addToCart(item)}
-              >
-                <div className="pos-item-emoji">
-                  {menuCategories.find(c => c.id === item.categoryId)?.icon || '🍴'}
-                </div>
+              <div key={item.id} className={`pos-item-card ${cartItem?'in-cart':''}`} onClick={() => addToCart(item)}>
+                <div className="pos-item-emoji">{menuCategories.find(c=>c.id===item.categoryId)?.icon||'🍴'}</div>
                 <div className="pos-item-name">{item.name}</div>
                 <div className="pos-item-price">Rs. {item.price.toLocaleString()}</div>
-                {cartItem && (
-                  <div className="pos-item-qty-badge">{cartItem.qty}</div>
-                )}
+                {cartItem && <div className="pos-item-qty-badge">{cartItem.qty}</div>}
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* ── Right: Cart ──────────────────────────── */}
+      {/* ── Right: Cart ─────────────────────────── */}
       <div className="pos-cart">
         <div className="pos-cart-header">
           <h2 className="pos-cart-title">Order Summary</h2>
-          {cart.length > 0 && (
-            <button className="pos-cart-clear" onClick={clearCart}>Clear All</button>
-          )}
+          {cart.length > 0 && <button className="pos-cart-clear" onClick={clearCart}>Clear All</button>}
         </div>
 
-        {/* Table select (dine-in) */}
+        {/* Customer Info Bar */}
+        <div className="pos-customer-bar" onClick={() => setShowCallModal(true)}>
+          <MdPerson className="pos-customer-bar-icon" />
+          <div className="pos-customer-bar-info">
+            {customerName ? (
+              <>
+                <span className="pos-customer-bar-name">{customerName}</span>
+                {customerPhone && <span className="pos-customer-bar-phone">{customerPhone}</span>}
+                {customerAddress && <span className="pos-customer-bar-addr">📍 {customerAddress}</span>}
+              </>
+            ) : (
+              <span className="pos-customer-bar-placeholder">Tap to add customer / call lookup</span>
+            )}
+          </div>
+          <MdPhone className="pos-customer-bar-phone-icon" />
+        </div>
+
+        {/* Table select */}
         {orderType === 'dine-in' && (
           <div className="pos-table-select">
             <label>Select Table</label>
-            <select value={selectedTable || ''} onChange={e => setSelectedTable(e.target.value || null)}>
+            <select value={selectedTable||''} onChange={e => setSelectedTable(e.target.value||null)}>
               <option value="">-- Choose Table --</option>
-              {tables.filter(t => t.status === 'available').map(t => (
+              {tables.filter(t=>t.status==='available').map(t => (
                 <option key={t.id} value={t.id}>Table {t.number} ({t.floor})</option>
               ))}
             </select>
           </div>
         )}
 
-        {/* Customer info */}
-        <div className="pos-customer">
-          <input placeholder="Customer Name (optional)" value={customerName} onChange={e => setCustomerName(e.target.value)} />
-          <input placeholder="Phone (optional)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
-        </div>
+        {/* Delivery address */}
+        {orderType === 'delivery' && (
+          <div className="pos-table-select">
+            <label>Delivery Address</label>
+            <input value={customerAddress} onChange={e=>setCustomerAddress(e.target.value)} placeholder="Enter delivery address..." />
+          </div>
+        )}
 
-        {/* Cart items */}
+        {/* Cart Items */}
         <div className="pos-cart-items">
           {cart.length === 0 ? (
             <div className="pos-cart-empty">
-              <div style={{ fontSize: 40 }}>🛒</div>
+              <div style={{fontSize:40}}>🛒</div>
               <div>Cart is empty</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Tap items to add</div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>Tap items to add</div>
             </div>
           ) : cart.map(item => (
             <div key={item.itemId} className="pos-cart-item">
               <div className="pos-cart-item-name">{item.name}</div>
               <div className="pos-cart-item-controls">
-                <button className="pos-qty-btn" onClick={() => updateCartQty(item.itemId, item.qty - 1)}>
-                  <MdRemove />
-                </button>
+                <button className="pos-qty-btn" onClick={() => updateCartQty(item.itemId, item.qty-1)}><MdRemove /></button>
                 <span className="pos-qty-val">{item.qty}</span>
-                <button className="pos-qty-btn" onClick={() => updateCartQty(item.itemId, item.qty + 1)}>
-                  <MdAdd />
-                </button>
+                <button className="pos-qty-btn" onClick={() => updateCartQty(item.itemId, item.qty+1)}><MdAdd /></button>
               </div>
-              <div className="pos-cart-item-price">Rs. {(item.price * item.qty).toLocaleString()}</div>
-              <button className="pos-cart-item-remove" onClick={() => removeFromCart(item.itemId)}>
-                <MdClose />
-              </button>
+              <div className="pos-cart-item-price">Rs. {(item.price*item.qty).toLocaleString()}</div>
+              <button className="pos-cart-item-remove" onClick={() => removeFromCart(item.itemId)}><MdClose /></button>
             </div>
           ))}
         </div>
@@ -249,12 +256,7 @@ export default function POS() {
         {cart.length > 0 && (
           <div className="pos-discount">
             <label>Discount %</label>
-            <input
-              type="number" min="0" max="100"
-              value={discount}
-              onChange={e => setDiscount(Number(e.target.value))}
-              style={{ width: 80 }}
-            />
+            <input type="number" min="0" max="100" value={discount} onChange={e=>setDiscount(Number(e.target.value))} style={{width:80}} />
           </div>
         )}
 
@@ -262,88 +264,120 @@ export default function POS() {
         <div className="pos-totals">
           <div className="pos-total-row"><span>Subtotal</span><span>Rs. {cartTotal.toLocaleString()}</span></div>
           <div className="pos-total-row"><span>Tax (5%)</span><span>Rs. {tax.toLocaleString()}</span></div>
-          {discountAmt > 0 && (
-            <div className="pos-total-row discount"><span>Discount ({discount}%)</span><span>- Rs. {discountAmt.toLocaleString()}</span></div>
-          )}
+          {discountAmt>0 && <div className="pos-total-row discount"><span>Discount ({discount}%)</span><span>- Rs. {discountAmt.toLocaleString()}</span></div>}
           <div className="pos-total-row grand"><span>Total</span><span>Rs. {finalTotal.toLocaleString()}</span></div>
         </div>
 
-        {/* Action buttons */}
+        {/* Actions */}
         <div className="pos-actions">
-          <button
-            className="btn-outline pos-action-btn"
-            disabled={cart.length === 0 || placingOrder}
-            onClick={handlePlaceOrder}
-          >
-            Send to Kitchen
+          <button className="btn-outline pos-action-btn" disabled={cart.length===0||placingOrder} onClick={handlePlaceOrder}>
+            🍳 Send to Kitchen
           </button>
-          <button
-            className="btn-primary pos-action-btn"
-            disabled={cart.length === 0 || placingOrder}
-            onClick={() => setShowPayModal(true)}
-          >
-            Pay Now — Rs. {finalTotal.toLocaleString()}
+          <button className="btn-primary pos-action-btn" disabled={cart.length===0||placingOrder} onClick={() => setShowPayModal(true)}>
+            💳 Pay — Rs. {finalTotal.toLocaleString()}
           </button>
         </div>
       </div>
 
-      {/* ── Payment Modal ──────────────────────── */}
+      {/* ══ CALL LOOKUP MODAL ════════════════════ */}
+      {showCallModal && (
+        <div className="modal-overlay" onClick={() => setShowCallModal(false)}>
+          <div className="modal-box fade-in" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+              <h3 style={{fontWeight:700,fontSize:18}}>📞 Customer Call Lookup</h3>
+              <button style={{background:'none',color:'var(--text-muted)',fontSize:20}} onClick={() => setShowCallModal(false)}>✕</button>
+            </div>
+            <CustomerCallLookup
+              onSelectCustomer={handleCustomerSelect}
+              onNewOrder={(customer) => { handleCustomerSelect(customer); setShowCallModal(false) }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ══ PAYMENT MODAL ════════════════════════ */}
       {showPayModal && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
-          <div className="modal-box fade-in" onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700 }}>💳 Payment</h3>
-              <button onClick={() => setShowPayModal(false)} style={{ background: 'none', color: 'var(--text-muted)', fontSize: 20 }}>✕</button>
+          <div className="modal-box fade-in" onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <h3 style={{fontSize:18,fontWeight:700}}>💳 Payment</h3>
+              <button onClick={()=>setShowPayModal(false)} style={{background:'none',color:'var(--text-muted)',fontSize:20}}>✕</button>
             </div>
 
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent)', textAlign: 'center', marginBottom: 20 }}>
+            {/* Customer summary */}
+            {customerName && (
+              <div style={{padding:'8px 12px',background:'rgba(230,57,70,0.06)',border:'1px solid rgba(230,57,70,0.2)',borderRadius:8,marginBottom:14,fontSize:13}}>
+                <strong>{customerName}</strong>
+                {customerPhone && <span style={{color:'var(--text-muted)',marginLeft:8}}>{customerPhone}</span>}
+                {customerAddress && <div style={{color:'var(--text-muted)',marginTop:2}}>📍 {customerAddress}</div>}
+              </div>
+            )}
+
+            <div style={{fontSize:28,fontWeight:800,color:'var(--accent)',textAlign:'center',marginBottom:16}}>
               Rs. {finalTotal.toLocaleString()}
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-              {['cash', 'card', 'online'].map(m => (
-                <button
-                  key={m}
-                  onClick={() => setPayMethod(m)}
-                  style={{
-                    flex: 1, padding: '10px', borderRadius: 8, fontWeight: 600, fontSize: 13,
-                    background: payMethod === m ? 'var(--accent)' : 'var(--bg-hover)',
-                    color: payMethod === m ? '#fff' : 'var(--text-secondary)',
-                    border: payMethod === m ? 'none' : '1px solid var(--border)',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {m === 'cash' ? '💵' : m === 'card' ? '💳' : '📱'} {m}
+            <div style={{display:'flex',gap:10,marginBottom:16}}>
+              {['cash','card','online'].map(m => (
+                <button key={m} onClick={()=>setPayMethod(m)} style={{flex:1,padding:'10px',borderRadius:8,fontWeight:600,fontSize:13,background:payMethod===m?'var(--accent)':'var(--bg-hover)',color:payMethod===m?'#fff':'var(--text-secondary)',border:payMethod===m?'none':'1px solid var(--border)',textTransform:'capitalize'}}>
+                  {m==='cash'?'💵':m==='card'?'💳':'📱'} {m}
                 </button>
               ))}
             </div>
 
-            {payMethod === 'cash' && (
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Amount Received</label>
-                <input
-                  type="number"
-                  placeholder={`Min. Rs. ${finalTotal}`}
-                  value={amountPaid}
-                  onChange={e => setAmountPaid(e.target.value)}
-                  style={{ fontSize: 16, padding: '12px' }}
-                />
-                {amountPaid && Number(amountPaid) >= finalTotal && (
-                  <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(45,198,83,0.1)', borderRadius: 8, color: '#2dc653', fontWeight: 600 }}>
-                    Change: Rs. {change.toLocaleString()}
+            {payMethod==='cash' && (
+              <div style={{marginBottom:14}}>
+                <label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:6}}>Amount Received</label>
+                <input type="number" placeholder={`Min. Rs. ${finalTotal}`} value={amountPaid} onChange={e=>setAmountPaid(e.target.value)} style={{fontSize:16,padding:'12px'}} autoFocus />
+                {amountPaid && Number(amountPaid)>=finalTotal && (
+                  <div style={{marginTop:10,padding:'10px 14px',background:'rgba(45,198,83,0.1)',borderRadius:8,color:'#2dc653',fontWeight:600,fontSize:15}}>
+                    💵 Change: Rs. {change.toLocaleString()}
                   </div>
                 )}
               </div>
             )}
 
-            <button
-              className="btn-primary"
-              style={{ width: '100%', padding: 14, fontSize: 15, marginTop: 8 }}
-              onClick={handlePayNow}
-              disabled={placingOrder || (payMethod === 'cash' && Number(amountPaid) < finalTotal)}
-            >
-              {placingOrder ? 'Processing...' : 'Confirm Payment'}
+            <button className="btn-primary" style={{width:'100%',padding:14,fontSize:15}} onClick={handlePayNow}
+              disabled={placingOrder||(payMethod==='cash'&&Number(amountPaid)<finalTotal)}>
+              {placingOrder?'Processing...':'✅ Confirm Payment'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══ RECEIPT MODAL ════════════════════════ */}
+      {showReceiptModal && lastOrder && (
+        <div className="modal-overlay" onClick={()=>setShowReceiptModal(false)}>
+          <div className="modal-box fade-in" style={{maxWidth:380}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <h3 style={{fontWeight:700}}>🧾 Receipt</h3>
+              <button style={{background:'none',color:'var(--text-muted)',fontSize:20}} onClick={()=>setShowReceiptModal(false)}>✕</button>
+            </div>
+
+            {/* Receipt Preview */}
+            <div style={{background:'#fff',borderRadius:8,padding:'8px',marginBottom:14,maxHeight:400,overflowY:'auto'}}>
+              <div ref={receiptRef}>
+                <Receipt order={lastOrder} />
+              </div>
+            </div>
+
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn-primary" style={{flex:1,padding:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}
+                onClick={()=>printReceipt('80mm')}>
+                <MdPrint /> Print 80mm
+              </button>
+              <button className="btn-outline" style={{flex:1,padding:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}
+                onClick={()=>printReceipt('58mm')}>
+                <MdPrint /> Print 58mm
+              </button>
+            </div>
+
+            {/* Hidden kitchen slip for auto print */}
+            <div style={{display:'none'}}>
+              <div ref={kitchenRef}>
+                <KitchenSlip order={lastOrder} />
+              </div>
+            </div>
           </div>
         </div>
       )}

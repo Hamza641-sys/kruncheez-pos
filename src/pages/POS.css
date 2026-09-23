@@ -157,3 +157,49 @@
 .pos-actions { display: flex; flex-direction: column; gap: 8px; }
 .pos-action-btn { width: 100%; padding: 12px; font-size: 13px; }
 .pos-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Top Bar ── */
+.pos-top-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pos-top-bar .pos-order-types { flex: 1; }
+
+.pos-call-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: rgba(230,57,70,0.1);
+  border: 1px solid rgba(230,57,70,0.3);
+  border-radius: var(--radius-md);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.pos-call-btn:hover { background: rgba(230,57,70,0.2); }
+
+/* ── Customer Bar ── */
+.pos-customer-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-hover);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.pos-customer-bar:hover { border-color: var(--accent); background: rgba(230,57,70,0.04); }
+.pos-customer-bar-icon { font-size: 20px; color: var(--accent); flex-shrink: 0; }
+.pos-customer-bar-info { flex: 1; min-width: 0; }
+.pos-customer-bar-name { display: block; font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.pos-customer-bar-phone { display: block; font-size: 11px; color: var(--text-secondary); }
+.pos-customer-bar-addr { display: block; font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pos-customer-bar-placeholder { font-size: 12px; color: var(--text-muted); }
+.pos-customer-bar-phone-icon { font-size: 18px; color: var(--text-muted); flex-shrink: 0; }

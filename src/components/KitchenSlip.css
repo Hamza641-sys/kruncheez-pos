@@ -1,0 +1,28 @@
+.kitchen-slip {
+  width: 218px; /* 58mm */
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  background: #fff;
+  color: #000;
+  padding: 8px 6px;
+  line-height: 1.5;
+}
+.ks-header    { text-align: center; margin-bottom: 4px; }
+.ks-title     { font-size: 14px; font-weight: 900; letter-spacing: 3px; }
+.ks-num       { font-size: 22px; font-weight: 900; margin: 2px 0; }
+.ks-time      { font-size: 11px; }
+.ks-divider   { text-align: center; font-size: 10px; margin: 3px 0; }
+.ks-meta      { font-size: 12px; margin: 4px 0; line-height: 1.6; }
+.ks-items     { margin: 4px 0; }
+.ks-item      { margin: 6px 0; }
+.ks-qty       { font-weight: 900; font-size: 14px; margin-right: 4px; }
+.ks-name      { font-weight: 700; font-size: 13px; }
+.ks-note      { font-size: 11px; font-style: italic; color: #333; }
+.ks-footer    { text-align: center; font-size: 10px; letter-spacing: 2px; margin-top: 4px; }
+
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; left: 0; top: 0; }
+  @page { size: 58mm auto; margin: 0; }
+}
