@@ -5,24 +5,28 @@ import {
   MdDashboard, MdPointOfSale, MdReceipt, MdTableRestaurant,
   MdOutdoorGrill, MdMenuBook, MdInventory, MdPeople,
   MdAccountBalance, MdBarChart, MdBadge, MdSettings, MdLogout,
-  MdTwoWheeler
+  MdTwoWheeler, MdEventSeat, MdAccessTime, MdNightlight, MdUndo
 } from 'react-icons/md'
 import './Sidebar.css'
 
 const navItems = [
-  { path: '/',          label: 'Dashboard',    icon: <MdDashboard /> },
-  { path: '/pos',       label: 'POS / New Order', icon: <MdPointOfSale /> },
-  { path: '/orders',    label: 'Orders',       icon: <MdReceipt /> },
-  { path: '/tables',    label: 'Tables',       icon: <MdTableRestaurant /> },
-  { path: '/kitchen',   label: 'Kitchen',      icon: <MdOutdoorGrill /> },
-  { path: '/delivery',  label: 'Delivery',     icon: <MdTwoWheeler /> },
-  { path: '/menu',      label: 'Menu',         icon: <MdMenuBook /> },
-  { path: '/inventory', label: 'Inventory',    icon: <MdInventory /> },
-  { path: '/customers', label: 'Customers',    icon: <MdPeople /> },
-  { path: '/expenses',  label: 'Expenses',     icon: <MdAccountBalance /> },
-  { path: '/reports',   label: 'Reports',      icon: <MdBarChart /> },
-  { path: '/employees', label: 'Employees',    icon: <MdBadge /> },
-  { path: '/settings',  label: 'Settings',     icon: <MdSettings /> },
+  { path: '/',             label: 'Dashboard',    icon: <MdDashboard /> },
+  { path: '/pos',          label: 'POS / New Order', icon: <MdPointOfSale /> },
+  { path: '/orders',       label: 'Orders',       icon: <MdReceipt /> },
+  { path: '/tables',       label: 'Tables',       icon: <MdTableRestaurant /> },
+  { path: '/kitchen',      label: 'Kitchen',      icon: <MdOutdoorGrill /> },
+  { path: '/delivery',     label: 'Delivery',     icon: <MdTwoWheeler /> },
+  { path: '/reservations', label: 'Reservations', icon: <MdEventSeat /> },
+  { path: '/shifts',       label: 'Shifts',       icon: <MdAccessTime /> },
+  { path: '/menu',         label: 'Menu',         icon: <MdMenuBook /> },
+  { path: '/inventory',    label: 'Inventory',    icon: <MdInventory /> },
+  { path: '/customers',    label: 'Customers',    icon: <MdPeople /> },
+  { path: '/expenses',     label: 'Expenses',     icon: <MdAccountBalance /> },
+  { path: '/reports',      label: 'Reports',      icon: <MdBarChart /> },
+  { path: '/endofday',     label: 'End of Day',   icon: <MdNightlight /> },
+  { path: '/refunds',      label: 'Refunds',      icon: <MdUndo /> },
+  { path: '/employees',    label: 'Employees',    icon: <MdBadge /> },
+  { path: '/settings',     label: 'Settings',     icon: <MdSettings /> },
 ]
 
 export default function Sidebar() {

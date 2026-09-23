@@ -1,0 +1,67 @@
+.eod-page { display: flex; flex-direction: column; gap: 20px; }
+
+.eod-report {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.eod-report-header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.eod-logo        { font-size: 40px; margin-bottom: 8px; }
+.eod-brand       { font-size: 20px; font-weight: 900; letter-spacing: 3px; }
+.eod-report-title{ font-size: 13px; color: var(--accent); letter-spacing: 2px; margin-top: 4px; }
+.eod-report-date { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+.eod-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.eod-stat-box {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  text-align: center;
+}
+.eod-stat-box.big {
+  background: rgba(230,57,70,0.05);
+  border-color: rgba(230,57,70,0.2);
+}
+.eod-stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.eod-stat-val   { font-size: 18px; font-weight: 800; }
+.eod-stat-box.big .eod-stat-val { font-size: 22px; }
+
+.eod-section { display: flex; flex-direction: column; gap: 12px; }
+.eod-section-title { font-size: 14px; font-weight: 700; color: var(--text-primary); padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+.eod-breakdown { display: flex; flex-direction: column; gap: 10px; }
+.eod-break-item { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-secondary); }
+.eod-break-item > span:first-child { width: 80px; flex-shrink: 0; }
+.eod-bar { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.eod-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.5s; }
+
+.eod-net-box {
+  background: var(--bg-hover);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.eod-net-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--text-secondary); }
+.eod-net-row span:last-child { font-weight: 600; color: var(--text-primary); }
+.eod-net-divider { height: 1px; background: var(--border); margin: 4px 0; }
+.eod-net-row.net { font-size: 18px; font-weight: 800; }
+.eod-net-row.net span:first-child { color: var(--text-primary); }
+
+@media print {
+  .eod-report { border: none; padding: 0; background: #fff; color: #000; }
+  .eod-stat-box, .eod-net-box { background: #f5f5f5; border-color: #ccc; }
+  .eod-section-title { color: #000; border-color: #ccc; }
+}

@@ -9,6 +9,7 @@ import KitchenSlip from '../components/KitchenSlip'
 import CustomerCallLookup from '../components/CustomerCallLookup'
 import { sendWhatsAppReceipt } from '../utils/whatsapp'
 import { calculateEarnedPoints, calculateRedeemValue, canRedeem, getPointsTier } from '../utils/loyalty'
+import { deductInventoryForOrder } from '../utils/inventoryDeduct'
 import toast from 'react-hot-toast'
 import {
   MdSearch, MdClose, MdAdd, MdRemove,
@@ -106,6 +107,8 @@ export default function POS() {
     try {
       const payload = buildOrderPayload('pending')
       await createOrder(payload)
+      // Auto deduct inventory
+      deductInventoryForOrder(cart)
       // Print kitchen slip
       setLastOrder(payload)
       setTimeout(() => printKitchen('58mm'), 200)
@@ -123,6 +126,8 @@ export default function POS() {
     try {
       const payload = buildOrderPayload('paid')
       const orderRef = await createOrder(payload)
+      // Auto deduct inventory
+      deductInventoryForOrder(cart)
       await completePayment(orderRef.id, {
         method: payMethod,
         amountPaid: Number(amountPaid) || finalTotal,
