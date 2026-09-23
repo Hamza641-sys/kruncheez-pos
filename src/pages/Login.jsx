@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import KruncheezLogo from '../components/KruncheezLogo'
 import './Login.css'
 
 export default function Login() {
@@ -29,9 +30,9 @@ export default function Login() {
     <div className="login-page">
       {/* Left brand panel */}
       <div className="login-brand">
-        <div className="login-brand-logo">🍔</div>
-        <h1 className="login-brand-name">THE KRUNCHEEZ</h1>
-        <p className="login-brand-tag">FAST • FRESH • TASTY</p>
+        <div style={{ marginBottom: 24 }}>
+          <KruncheezLogo size="lg" theme="dark" />
+        </div>
         <p className="login-brand-desc">
           Professional Point of Sale System.<br />
           Manage orders, tables, kitchen &<br />

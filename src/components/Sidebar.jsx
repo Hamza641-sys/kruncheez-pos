@@ -7,6 +7,7 @@ import {
   MdAccountBalance, MdBarChart, MdBadge, MdSettings, MdLogout,
   MdTwoWheeler, MdEventSeat, MdAccessTime, MdNightlight, MdUndo
 } from 'react-icons/md'
+import KruncheezLogo from './KruncheezLogo'
 import './Sidebar.css'
 
 const navItems = [
@@ -43,11 +44,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">🍔</div>
-        <div>
-          <div className="sidebar-logo-name">THE KRUNCHEEZ</div>
-          <div className="sidebar-logo-tagline">FAST • FRESH • TASTY</div>
-        </div>
+        <KruncheezLogo size="sm" theme="dark" />
       </div>
 
       {/* Nav */}
