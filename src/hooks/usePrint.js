@@ -80,48 +80,83 @@ function generateReceiptHTML(order, width = '80mm') {
 }
 
 // ── Generate Kitchen Slip HTML ────────────────────────────
+// Same as customer receipt but with KITCHEN COPY header
 function generateKitchenHTML(order) {
   const orderNum = String(order?.orderNumber || order?.id?.slice(0,4) || '0000').padStart(4,'0')
-  const time     = order?.createdAt?.toDate
-    ? format(order.createdAt.toDate(), 'hh:mm a')
-    : format(new Date(), 'hh:mm a')
+  const date     = order?.createdAt?.toDate
+    ? format(order.createdAt.toDate(), 'dd/MM/yyyy hh:mm a')
+    : format(new Date(), 'dd/MM/yyyy hh:mm a')
 
   const itemsHTML = (order?.items || []).map(item => `
-    <div style="margin:8px 0;display:flex;align-items:flex-start;gap:8px;">
-      <span style="background:#000;color:#fff;padding:2px 7px;font-size:14px;font-weight:900;border-radius:3px;flex-shrink:0;">${item.qty}x</span>
-      <div>
-        <div style="font-size:14px;font-weight:900;text-transform:uppercase;">${item.name}</div>
-        ${item.note ? `<div style="font-size:11px;font-style:italic;color:#444;">!! ${item.note}</div>` : ''}
-      </div>
-    </div>
+    <tr>
+      <td style="padding:3px 0;font-size:12px;font-weight:700;">${item.name}</td>
+      <td style="padding:3px 0;font-size:12px;text-align:center;">x${item.qty}</td>
+      <td style="padding:3px 0;font-size:12px;text-align:right;">Rs.${(item.price * item.qty).toLocaleString()}</td>
+    </tr>
+    ${item.note ? `<tr><td colspan="3" style="font-size:10px;color:#555;font-style:italic;padding-bottom:4px;">  !! ${item.note}</td></tr>` : ''}
   `).join('')
 
   return `
     <div style="font-family:'Courier New',monospace;font-size:12px;color:#000;width:100%;line-height:1.5;">
 
-      <!-- Header -->
-      <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px;">
-        <div style="font-size:13px;font-weight:900;letter-spacing:4px;">KITCHEN ORDER</div>
-        <div style="font-size:36px;font-weight:900;margin:4px 0;">#${orderNum}</div>
-        <div style="font-size:13px;">${time}</div>
+      <!-- Kitchen Badge -->
+      <div style="text-align:center;background:#000;color:#fff;padding:6px;font-size:13px;font-weight:900;letter-spacing:3px;margin-bottom:8px;">
+        ★ KITCHEN COPY ★
       </div>
 
-      <!-- Meta -->
-      <table style="width:100%;font-size:13px;font-weight:700;margin-bottom:8px;">
-        <tr><td>TYPE:</td><td style="text-align:right;text-transform:uppercase;">${order?.orderType || 'DINE-IN'}</td></tr>
-        ${order?.tableNumber ? `<tr><td>TABLE:</td><td style="text-align:right;">${order.tableNumber}</td></tr>` : ''}
-        ${order?.customerName && order?.customerName !== 'Walk-in' ? `<tr><td>NAME:</td><td style="text-align:right;">${order.customerName}</td></tr>` : ''}
-        ${order?.customerPhone ? `<tr><td>PHONE:</td><td style="text-align:right;">${order.customerPhone}</td></tr>` : ''}
+      <!-- Header -->
+      <div style="text-align:center;border-bottom:1px dashed #000;padding-bottom:8px;margin-bottom:8px;">
+        <div style="font-size:26px;">🍔</div>
+        <div style="font-size:16px;font-weight:900;letter-spacing:3px;margin:4px 0;">THE KRUNCHEEZ</div>
+        <div style="font-size:10px;letter-spacing:2px;">FAST • FRESH • TASTY</div>
+        <div style="font-size:10px;margin-top:3px;">Your Address Here</div>
+        <div style="font-size:10px;">+92-XXX-XXXXXXX</div>
+      </div>
+
+      <!-- Order Info -->
+      <table style="width:100%;font-size:11px;margin-bottom:6px;">
+        <tr><td style="color:#333;">Order #</td><td style="text-align:right;font-weight:700;">${orderNum}</td></tr>
+        <tr><td style="color:#333;">Date</td><td style="text-align:right;">${date}</td></tr>
+        <tr><td style="color:#333;">Type</td><td style="text-align:right;text-transform:capitalize;">${order?.orderType || 'Dine-in'}</td></tr>
+        ${order?.tableNumber ? `<tr><td style="color:#333;">Table</td><td style="text-align:right;">${order.tableNumber}</td></tr>` : ''}
+        <tr><td style="color:#333;">Customer</td><td style="text-align:right;">${order?.customerName || 'Walk-in'}</td></tr>
+        ${order?.customerPhone ? `<tr><td style="color:#333;">Phone</td><td style="text-align:right;">${order.customerPhone}</td></tr>` : ''}
+        ${order?.customerAddress ? `<tr><td style="color:#333;">Address</td><td style="text-align:right;">${order.customerAddress}</td></tr>` : ''}
+        <tr><td style="color:#333;">Staff</td><td style="text-align:right;">${order?.staffName || 'Cashier'}</td></tr>
       </table>
 
       <!-- Items -->
-      <div style="border-top:2px solid #000;border-bottom:2px solid #000;padding:8px 0;margin-bottom:8px;">
-        ${itemsHTML}
+      <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:6px 0;margin-bottom:6px;">
+        <table style="width:100%;">
+          <tr style="border-bottom:1px solid #ccc;">
+            <th style="text-align:left;font-size:11px;padding-bottom:4px;">Item</th>
+            <th style="text-align:center;font-size:11px;padding-bottom:4px;">Qty</th>
+            <th style="text-align:right;font-size:11px;padding-bottom:4px;">Price</th>
+          </tr>
+          ${itemsHTML}
+        </table>
       </div>
 
+      <!-- Totals -->
+      <table style="width:100%;font-size:12px;margin-bottom:6px;">
+        <tr><td>Subtotal</td><td style="text-align:right;">Rs. ${(order?.subtotal || 0).toLocaleString()}</td></tr>
+        ${order?.discount > 0 ? `<tr><td>Discount</td><td style="text-align:right;">- Rs. ${order.discount.toLocaleString()}</td></tr>` : ''}
+        <tr><td>Tax (5%)</td><td style="text-align:right;">Rs. ${(order?.tax || 0).toLocaleString()}</td></tr>
+        <tr style="border-top:1px dashed #000;">
+          <td style="font-size:15px;font-weight:900;padding-top:4px;">TOTAL</td>
+          <td style="font-size:15px;font-weight:900;text-align:right;padding-top:4px;">Rs. ${(order?.total || 0).toLocaleString()}</td>
+        </tr>
+        ${order?.paymentMethod ? `<tr><td style="color:#333;">Paid via</td><td style="text-align:right;text-transform:capitalize;">${order.paymentMethod}</td></tr>` : ''}
+        ${order?.amountPaid && order.amountPaid !== order.total ? `
+          <tr><td style="color:#333;">Amount Paid</td><td style="text-align:right;">Rs. ${order.amountPaid.toLocaleString()}</td></tr>
+          <tr><td style="color:#333;">Change</td><td style="text-align:right;">Rs. ${(order.change || 0).toLocaleString()}</td></tr>
+        ` : ''}
+      </table>
+
       <!-- Footer -->
-      <div style="text-align:center;font-size:11px;letter-spacing:2px;">
-        ── KRUNCHEEZ KITCHEN ──
+      <div style="text-align:center;border-top:1px dashed #000;padding-top:8px;font-size:10px;line-height:1.8;">
+        <div style="font-weight:900;font-size:12px;">★ KITCHEN COPY ★</div>
+        <div>Kruncheez Kitchen</div>
       </div>
     </div>
   `
