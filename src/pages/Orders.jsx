@@ -186,7 +186,7 @@ export default function Orders() {
                 <MdReceipt /> Receipt
               </button>
               <button style={{flex:1,padding:'8px',borderRadius:8,fontSize:12,fontWeight:600,background:'rgba(244,162,97,0.1)',color:'#f4a261',border:'1px solid rgba(244,162,97,0.2)',display:'flex',alignItems:'center',justifyContent:'center',gap:4}}
-                onClick={()=>{setPrintOrder(detail);setTimeout(()=>printKitchen('58mm'),100)}}>
+                onClick={()=>{setPrintOrder(detail);setTimeout(()=>printKitchen(detail,'58mm'),100)}}>
                 <MdPrint /> Kitchen
               </button>
             </div>
@@ -241,17 +241,17 @@ export default function Orders() {
             {/* Both copies */}
             <div style={{marginBottom:8}}>
               <button className="btn-primary" style={{width:'100%',padding:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:14}}
-                onClick={()=>handlePrintBoth('80mm')}>
+                onClick={()=>handlePrintBoth(printOrder,'80mm')}>
                 <MdPrint /> Print Both Copies (Customer + Kitchen)
               </button>
             </div>
             <div style={{display:'flex',gap:10}}>
               <button className="btn-outline" style={{flex:1,padding:10,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:12}}
-                onClick={()=>printReceipt('80mm')}>
+                onClick={()=>printReceipt(printOrder,'80mm')}>
                 <MdPrint /> Customer Only
               </button>
               <button className="btn-outline" style={{flex:1,padding:10,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:12}}
-                onClick={()=>printKitchen('58mm')}>
+                onClick={()=>printKitchen(printOrder,'58mm')}>
                 <MdPrint /> Kitchen Only
               </button>
             </div>

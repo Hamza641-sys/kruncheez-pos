@@ -428,17 +428,17 @@ export default function POS() {
             {/* Print Buttons */}
             <div style={{display:'flex',gap:10,marginBottom:8}}>
               <button className="btn-primary" style={{flex:2,padding:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:14}}
-                onClick={()=>handlePrintBoth('80mm')}>
+                onClick={()=>handlePrintBoth(lastOrder,'80mm')}>
                 <MdPrint /> Print Both Copies (Customer + Kitchen)
               </button>
             </div>
             <div style={{display:'flex',gap:10}}>
               <button className="btn-outline" style={{flex:1,padding:10,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:12}}
-                onClick={()=>printReceipt('80mm')}>
+                onClick={()=>printReceipt(lastOrder,'80mm')}>
                 <MdPrint /> Customer Only (80mm)
               </button>
               <button className="btn-outline" style={{flex:1,padding:10,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontSize:12}}
-                onClick={()=>printKitchen('58mm')}>
+                onClick={()=>printKitchen(lastOrder,'58mm')}>
                 <MdPrint /> Kitchen Only (58mm)
               </button>
             </div>
