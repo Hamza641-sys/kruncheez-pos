@@ -47,10 +47,10 @@ export default function POS() {
   // Print hooks
   const { printRef: receiptRef, kitchenPrintRef: kitchenRef, handlePrint: printReceipt, handlePrintKitchen: printKitchen, handlePrintBoth } = usePrint()
 
-  const tax          = Math.round(cartTotal * 0.05)
+  const tax          = 0
   const discountAmt  = Math.round(cartTotal * (discount / 100))
   const loyaltyDiscount = calculateRedeemValue(redeemPoints)
-  const finalTotal   = Math.max(0, cartTotal + tax - discountAmt - loyaltyDiscount)
+  const finalTotal   = Math.max(0, cartTotal - discountAmt - loyaltyDiscount)
   const change       = Math.max(0, Number(amountPaid) - finalTotal)
   const earnedPoints = calculateEarnedPoints(finalTotal)
 
@@ -300,8 +300,8 @@ export default function POS() {
         {/* Totals */}
         <div className="pos-totals">
           <div className="pos-total-row"><span>Subtotal</span><span>Rs. {cartTotal.toLocaleString()}</span></div>
-          <div className="pos-total-row"><span>Tax (5%)</span><span>Rs. {tax.toLocaleString()}</span></div>
-          {discountAmt>0 && <div className="pos-total-row discount"><span>Discount ({discount}%)</span><span>- Rs. {discountAmt.toLocaleString()}</span></div>}
+          {discountAmt > 0 && <div className="pos-total-row discount"><span>Discount ({discount}%)</span><span>- Rs. {discountAmt.toLocaleString()}</span></div>}
+          {loyaltyDiscount > 0 && <div className="pos-total-row discount"><span>Loyalty Discount</span><span>- Rs. {loyaltyDiscount.toLocaleString()}</span></div>}
           <div className="pos-total-row grand"><span>Total</span><span>Rs. {finalTotal.toLocaleString()}</span></div>
         </div>
 

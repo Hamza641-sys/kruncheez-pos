@@ -24,11 +24,10 @@ function generateReceiptHTML(order) {
     </tr>
   `).join('')
 
-  const subtotal  = order?.subtotal || 0
-  const tax       = order?.tax || 0
+  const subtotal  = order?.subtotal || (order?.items || []).reduce((s,i) => s + i.price * i.qty, 0)
   const discount  = order?.discount || 0
-  const total     = order?.total || 0
   const delivery  = order?.orderType === 'delivery' ? (order?.deliveryCharge || 0) : 0
+  const total     = subtotal - discount + delivery
 
   return `
     <div style="font-family:'Courier New',Courier,monospace;font-size:12px;color:#000;width:100%;line-height:1.6;">
@@ -100,7 +99,6 @@ function generateReceiptHTML(order) {
         <tr><td>Sub Total:</td><td style="text-align:right;">${subtotal.toLocaleString()}.00</td></tr>
         <tr><td>Delivery:</td><td style="text-align:right;">${delivery.toLocaleString()}.00</td></tr>
         ${discount > 0 ? `<tr><td>Discount:</td><td style="text-align:right;">-${discount.toLocaleString()}.00</td></tr>` : ''}
-        <tr><td>${tax > 0 ? tax : '0.00'} %Serv</td><td style="text-align:right;">${tax > 0 ? tax.toLocaleString() : '0.00'}</td></tr>
       </table>
 
       <div style="border-top:2px solid #000;margin:4px 0;"></div>
@@ -119,9 +117,6 @@ function generateReceiptHTML(order) {
       </div>` : ''}
 
       <div style="text-align:center;font-size:11px;font-weight:700;margin:6px 0;">Thanks for your trust</div>
-
-      <div style="border-top:1px dashed #000;margin:4px 0;"></div>
-      <div style="font-size:10px;color:#666;text-align:center;">Software Developed By: Kruncheez POS</div>
     </div>
   `
 }
