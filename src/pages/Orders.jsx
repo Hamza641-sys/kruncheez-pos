@@ -31,7 +31,9 @@ export default function Orders() {
 
   const filtered = filter==='all' ? orders : orders.filter(o=>o.status===filter)
   const detail   = selected ? orders.find(o=>o.id===selected) : null
-  const change   = Math.max(0, Number(amountPaid) - (detail?.total||0))
+  // Real total = subtotal - discount (no tax)
+  const realTotal = detail ? ((detail.subtotal || detail.total || 0) - (detail.discount || 0)) : 0
+  const change   = Math.max(0, Number(amountPaid) - realTotal)
 
   const handleStatus = async (id, status) => {
     try { await updateOrderStatus(id, status); toast.success(`Order → ${status}`) }
@@ -45,13 +47,12 @@ export default function Orders() {
 
   const handlePay = async () => {
     if (!detail) return
-    if (payMethod==='cash' && Number(amountPaid)<detail.total) { toast.error('Insufficient amount'); return }
+    if (payMethod==='cash' && Number(amountPaid)<realTotal) { toast.error('Insufficient amount'); return }
     setPaying(true)
     try {
-      await completePayment(detail.id, { method:payMethod, amountPaid:Number(amountPaid)||detail.total, change })
+      await completePayment(detail.id, { method:payMethod, amountPaid:Number(amountPaid)||realTotal, change })
       toast.success('✅ Payment complete!')
-      // Show receipt
-      setPrintOrder({ ...detail, paymentMethod:payMethod, amountPaid:Number(amountPaid)||detail.total, change })
+      setPrintOrder({ ...detail, total:realTotal, paymentMethod:payMethod, amountPaid:Number(amountPaid)||realTotal, change })
       setShowReceipt(true)
       setSelected(null)
       setAmountPaid('')
@@ -171,11 +172,10 @@ export default function Orders() {
             </div>
 
             <div style={{fontSize:13,display:'flex',flexDirection:'column',gap:4}}>
-              <div style={{display:'flex',justifyContent:'space-between'}}><span>Subtotal</span><span>Rs. {(detail.subtotal||0).toLocaleString()}</span></div>
-              <div style={{display:'flex',justifyContent:'space-between'}}><span>Tax (5%)</span><span>Rs. {(detail.tax||0).toLocaleString()}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between'}}><span>Subtotal</span><span>Rs. {(detail.subtotal||detail.total||0).toLocaleString()}</span></div>
               {detail.discount>0&&<div style={{display:'flex',justifyContent:'space-between',color:'var(--success)'}}><span>Discount</span><span>- Rs. {detail.discount.toLocaleString()}</span></div>}
               <div style={{display:'flex',justifyContent:'space-between',fontWeight:700,fontSize:16,paddingTop:8,borderTop:'1px solid var(--border)'}}>
-                <span>Total</span><span style={{color:'var(--accent)'}}>Rs. {(detail.total||0).toLocaleString()}</span>
+                <span>Total</span><span style={{color:'var(--accent)'}}>Rs. {((detail.subtotal||detail.total||0) - (detail.discount||0)).toLocaleString()}</span>
               </div>
             </div>
 
@@ -200,15 +200,15 @@ export default function Orders() {
                   ))}
                 </div>
                 {payMethod==='cash'&&(
-                  <input type="number" placeholder={`Amount (min Rs. ${detail.total})`} value={amountPaid} onChange={e=>setAmountPaid(e.target.value)} />
+                  <input type="number" placeholder={`Amount (min Rs. ${realTotal})`} value={amountPaid} onChange={e=>setAmountPaid(e.target.value)} />
                 )}
-                {amountPaid&&Number(amountPaid)>=detail.total&&(
+                {amountPaid&&Number(amountPaid)>=realTotal&&(
                   <div style={{padding:'8px 12px',background:'rgba(45,198,83,0.1)',borderRadius:8,color:'#2dc653',fontSize:13,fontWeight:600}}>
                     💵 Change: Rs. {change.toLocaleString()}
                   </div>
                 )}
                 <button className="btn-primary" style={{width:'100%',padding:12}} onClick={handlePay}
-                  disabled={paying||(payMethod==='cash'&&Number(amountPaid)<detail.total)}>
+                  disabled={paying||(payMethod==='cash'&&Number(amountPaid)<realTotal)}>
                   {paying?'Processing...':'💰 Collect Payment'}
                 </button>
               </div>
