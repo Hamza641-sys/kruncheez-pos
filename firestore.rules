@@ -61,5 +61,35 @@ service cloud.firestore {
     match /salesSummary/{doc} {
       allow read, write: if isAuth();
     }
+
+    // Refunds - all authenticated
+    match /refunds/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Shifts - all authenticated
+    match /shifts/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Reservations - all authenticated
+    match /reservations/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Riders - all authenticated
+    match /riders/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Inventory - all authenticated
+    match /inventory/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Allow any authenticated user to read/write any collection
+    match /{document=**} {
+      allow read, write: if isAuth();
+    }
   }
 }

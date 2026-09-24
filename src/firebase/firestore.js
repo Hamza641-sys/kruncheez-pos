@@ -89,17 +89,21 @@ export const completePayment = async (orderId, paymentData) => {
     })
   }
 
-  // Update daily sales summary
-  const today = new Date().toISOString().split('T')[0]
-  const salesRef = doc(db, 'salesSummary', today)
-  batch.set(salesRef, {
-    date: today,
-    totalSales: increment(order?.total || 0),
-    totalOrders: increment(1),
-    updatedAt: serverTimestamp(),
-  }, { merge: true })
-
   await batch.commit()
+
+  // Update daily sales summary (separate try - non critical)
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const salesRef = doc(db, 'salesSummary', today)
+    await setDoc(salesRef, {
+      date: today,
+      totalSales: increment(order?.total || 0),
+      totalOrders: increment(1),
+      updatedAt: serverTimestamp(),
+    }, { merge: true })
+  } catch (e) {
+    console.warn('Sales summary update failed:', e.message)
+  }
 }
 
 // ── Menu ────────────────────────────────────────────────────

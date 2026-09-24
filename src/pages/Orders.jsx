@@ -31,9 +31,10 @@ export default function Orders() {
 
   const filtered = filter==='all' ? orders : orders.filter(o=>o.status===filter)
   const detail   = selected ? orders.find(o=>o.id===selected) : null
-  // Real total = subtotal - discount (no tax)
-  const realTotal = detail ? ((detail.subtotal || detail.total || 0) - (detail.discount || 0)) : 0
-  const change   = Math.max(0, Number(amountPaid) - realTotal)
+  // Calculate real total from items (most reliable)
+  const itemsTotal = detail ? (detail.items||[]).reduce((s,i) => s + (i.price * i.qty), 0) : 0
+  const realTotal  = detail ? (itemsTotal - (detail.discount || 0)) : 0
+  const change     = Math.max(0, Number(amountPaid) - realTotal)
 
   const handleStatus = async (id, status) => {
     try { await updateOrderStatus(id, status); toast.success(`Order → ${status}`) }
@@ -47,16 +48,24 @@ export default function Orders() {
 
   const handlePay = async () => {
     if (!detail) return
-    if (payMethod==='cash' && Number(amountPaid)<realTotal) { toast.error('Insufficient amount'); return }
+    // Accept any amount - no minimum check
+    const paidAmount = Number(amountPaid) || realTotal
+    const changeAmt  = Math.max(0, paidAmount - realTotal)
     setPaying(true)
     try {
-      await completePayment(detail.id, { method:payMethod, amountPaid:Number(amountPaid)||realTotal, change })
+      await completePayment(detail.id, {
+        method: payMethod,
+        amountPaid: paidAmount,
+        change: changeAmt,
+      })
       toast.success('✅ Payment complete!')
-      setPrintOrder({ ...detail, total:realTotal, paymentMethod:payMethod, amountPaid:Number(amountPaid)||realTotal, change })
+      setPrintOrder({ ...detail, total: realTotal, subtotal: itemsTotal, tax: 0, paymentMethod: payMethod, amountPaid: paidAmount, change: changeAmt })
       setShowReceipt(true)
       setSelected(null)
       setAmountPaid('')
-    } catch { toast.error('Failed') }
+    } catch (err) {
+      toast.error('Failed: ' + err.message)
+    }
     setPaying(false)
   }
 
@@ -172,10 +181,10 @@ export default function Orders() {
             </div>
 
             <div style={{fontSize:13,display:'flex',flexDirection:'column',gap:4}}>
-              <div style={{display:'flex',justifyContent:'space-between'}}><span>Subtotal</span><span>Rs. {(detail.subtotal||detail.total||0).toLocaleString()}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between'}}><span>Subtotal</span><span>Rs. {itemsTotal.toLocaleString()}</span></div>
               {detail.discount>0&&<div style={{display:'flex',justifyContent:'space-between',color:'var(--success)'}}><span>Discount</span><span>- Rs. {detail.discount.toLocaleString()}</span></div>}
               <div style={{display:'flex',justifyContent:'space-between',fontWeight:700,fontSize:16,paddingTop:8,borderTop:'1px solid var(--border)'}}>
-                <span>Total</span><span style={{color:'var(--accent)'}}>Rs. {((detail.subtotal||detail.total||0) - (detail.discount||0)).toLocaleString()}</span>
+                <span>Total</span><span style={{color:'var(--accent)'}}>Rs. {realTotal.toLocaleString()}</span>
               </div>
             </div>
 
@@ -200,16 +209,25 @@ export default function Orders() {
                   ))}
                 </div>
                 {payMethod==='cash'&&(
-                  <input type="number" placeholder={`Amount (min Rs. ${realTotal})`} value={amountPaid} onChange={e=>setAmountPaid(e.target.value)} />
+                  <input type="number"
+                    placeholder={`Total: Rs. ${realTotal} — Enter amount received`}
+                    value={amountPaid}
+                    onChange={e=>setAmountPaid(e.target.value)}
+                    autoFocus
+                  />
                 )}
-                {amountPaid&&Number(amountPaid)>=realTotal&&(
-                  <div style={{padding:'8px 12px',background:'rgba(45,198,83,0.1)',borderRadius:8,color:'#2dc653',fontSize:13,fontWeight:600}}>
-                    💵 Change: Rs. {change.toLocaleString()}
+                {payMethod==='cash' && amountPaid && (
+                  <div style={{padding:'8px 12px',background: Number(amountPaid) >= realTotal ? 'rgba(45,198,83,0.1)' : 'rgba(230,57,70,0.08)',borderRadius:8,color: Number(amountPaid) >= realTotal ? '#2dc653' : 'var(--accent)',fontSize:13,fontWeight:600}}>
+                    {Number(amountPaid) >= realTotal
+                      ? `💵 Change: Rs. ${(Number(amountPaid) - realTotal).toLocaleString()}`
+                      : `⚠️ Short: Rs. ${(realTotal - Number(amountPaid)).toLocaleString()}`
+                    }
                   </div>
                 )}
-                <button className="btn-primary" style={{width:'100%',padding:12}} onClick={handlePay}
-                  disabled={paying||(payMethod==='cash'&&Number(amountPaid)<realTotal)}>
-                  {paying?'Processing...':'💰 Collect Payment'}
+                <button className="btn-primary" style={{width:'100%',padding:13,fontSize:14,fontWeight:700}}
+                  onClick={handlePay}
+                  disabled={paying}>
+                  {paying ? 'Processing...' : `💰 Collect Payment — Rs. ${realTotal.toLocaleString()}`}
                 </button>
               </div>
             )}
