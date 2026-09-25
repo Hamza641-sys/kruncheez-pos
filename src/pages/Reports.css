@@ -1,0 +1,83 @@
+.reports-page { display: flex; flex-direction: column; gap: 20px; }
+
+/* Range Selector */
+.reports-ranges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.reports-range-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.reports-range-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+.reports-range-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* KPI Cards */
+.reports-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+.reports-kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.reports-kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.reports-kpi-icon {
+  width: 42px; height: 42px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.reports-kpi-info { flex: 1; min-width: 0; }
+.reports-kpi-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+.reports-kpi-value { font-size: 16px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reports-kpi-change { font-size: 10px; margin-top: 3px; }
+.reports-kpi-change.up   { color: var(--success); }
+.reports-kpi-change.down { color: var(--danger); }
+
+/* Charts Row */
+.reports-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.reports-main-chart  { flex: 1.5; }
+.reports-orders-chart { flex: 1; }
+
+.reports-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* Print styles */
+@media print {
+  .reports-ranges,
+  .page-header button { display: none; }
+  .reports-kpis { grid-template-columns: repeat(3,1fr); }
+  .reports-row { flex-wrap: wrap; }
+  .card { break-inside: avoid; page-break-inside: avoid; }
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .reports-kpis { grid-template-columns: repeat(3, 1fr); }
+}
